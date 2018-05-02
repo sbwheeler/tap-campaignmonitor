@@ -13,6 +13,66 @@
       "stream": "campaigns"
     },
     {
+      "tap_stream_id": "recipients",
+      "key_properties": [
+        "EmailAddress"
+      ],
+      "schema": {
+        "selected": "true",
+        "inclusion": "automatic",
+        "type": "object"
+      },
+      "stream": "recipients"
+    },
+    {
+      "tap_stream_id": "bounces",
+      "key_properties": [
+        "EmailAddress"
+      ],
+      "schema": {
+        "selected": "true",
+        "inclusion": "automatic",
+        "type": "object"
+      },
+      "stream": "bounces"
+    },
+    {
+      "tap_stream_id": "opens",
+      "key_properties": [
+        "EmailAddress"
+      ],
+      "schema": {
+        "selected": "true",
+        "inclusion": "automatic",
+        "type": "object"
+      },
+      "stream": "opens"
+    },
+    {
+      "tap_stream_id": "clicks",
+      "key_properties": [
+        "EmailAddress"
+      ],
+      "schema": {
+        "selected": "true",
+        "inclusion": "automatic",
+        "type": "object"
+      },
+      "stream": "clicks"
+    },
+    {
+      "tap_stream_id": "unsubscribes",
+      "key_properties": [
+        "EmailAddress"
+      ],
+      "schema": {
+        "selected": "true",
+        "inclusion": "automatic",
+        "type": "object"
+      },
+      "stream": "unsubscribes"
+    },
+    {
       "tap_stream_id": "marked_as_spam",
       "key_properties": [
         "EmailAddress"
