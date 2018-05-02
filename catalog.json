@@ -1,0 +1,28 @@
+{
+  "streams": [
+    {
+      "tap_stream_id": "campaigns",
+      "key_properties": [
+        "EmailAddress"
+      ],
+      "schema": {
+        "selected": "true",
+        "inclusion": "automatic",
+        "type": "object"
+      },
+      "stream": "campaigns"
+    },
+    {
+      "tap_stream_id": "marked_as_spam",
+      "key_properties": [
+        "EmailAddress"
+      ],
+      "schema": {
+        "selected": "true",
+        "inclusion": "automatic",
+        "type": "object"
+      },
+      "stream": "marked_as_spam"
+    }
+  ]
+}
