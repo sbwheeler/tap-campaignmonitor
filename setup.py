@@ -12,7 +12,8 @@ setup(
     install_requires=[
         "singer-python>=5.0.12",
         "requests",
-        "createsend==5.0.0"
+        "createsend==5.0.0",
+        "pendulum==1.2.0",
     ],
     entry_points="""
     [console_scripts]
