@@ -1,3 +1,4 @@
+import json
 from collections import defaultdict
 from datetime import datetime
 
@@ -19,13 +20,13 @@ def write_records(tap_stream_id, records):
 
 
 class BOOK(object):
-    CAMPAIGNS = IDS.CAMPAIGNS
-    RECIPIENTS = IDS.RECIPIENTS
+    CAMPAIGNS = [IDS.CAMPAIGNS]
+    RECIPIENTS = [IDS.RECIPIENTS]
     BOUNCES = [IDS.BOUNCES, 'Date']
     OPENS = [IDS.OPENS, 'Date']
     CLICKS = [IDS.CLICKS, 'Date']
     UNSUBSCRIBES = [IDS.UNSUBSCRIBES, 'Date']
-    MARKED_AS_SPAM = [IDS.MARKED_AS_SPAM, 'Date']
+    SPAM = [IDS.SPAM, 'Date']
 
     @classmethod
     def return_bookmark_path(cls, stream):
@@ -43,13 +44,19 @@ class BOOK(object):
 
     @classmethod
     def get_full_syncs(cls):
-        return [cls.CAMPAIGNS, cls.RECIPIENTS]
+        syncs = []
+        for k, v in cls.__dict__.items():
+            if not k.startswith("__") and not isinstance(v, classmethod):
+                if len(v) == 1:
+                    syncs.append(k)
+
+        return syncs
 
 
 def sync(context):
     # do full syncs first as they are used later
     for stream in context.selected_stream_ids:
-        if stream in BOOK.get_full_syncs():
+        if stream.upper() in BOOK.get_full_syncs():
             call_stream_full(context, stream)
 
     for stream in context.selected_stream_ids:
@@ -60,8 +67,8 @@ def sync(context):
 
 def call_stream_full(context, stream):
     if stream == 'campaigns':
-        response = context.client.GET()
-        records_to_write = transform_records(response, stream)
+        response = context.client.GET(stream='campaigns')
+        records_to_write = json.loads(response.content)
         write_records(stream, records_to_write)
 
         context.save_campaigns_meta(records_to_write)
@@ -74,7 +81,8 @@ def call_recipients_stream(context, stream):
     stream_resource = 'campaigns'
 
     for campaign in context.campaigns:
-        logger.info('querying {stream} id: {id}'.format(
+        logger.info('{ts} - querying {stream} id: {id}'.format(
+            ts=datetime.now(),
             stream=stream_resource,
             id=campaign['id'],
         ))
@@ -91,10 +99,7 @@ def get_date_string_from_last_updated(datestring):
 
 
 def get_date_from_last_updated(datestring):
-    try:
-        return datetime.strptime(datestring[:-6], '%Y-%m-%dT%H:%M:%S')
-    except ValueError as e:
-        logger.info(datestring)
+    return datetime.strptime(datestring[:-6], '%Y-%m-%dT%H:%M:%S')
 
 
 def get_date_from_record_string(datestring):
@@ -111,7 +116,8 @@ def call_stream_incremental(context, stream):
     for campaign in context.campaigns:
         context.update_latest(campaign['id'], last_updated)
 
-        logger.info('querying {stream} id: {id}, since: {since}'.format(
+        logger.info('{ts} - querying {stream} id: {id}, since: {since}'.format(
+            ts=datetime.now(),
             stream=stream_resource,
             id=campaign['id'],
             since=last_updated[campaign['id']],
@@ -148,22 +154,23 @@ def run_campaign_activity_request(context,
             last_updated[campaign_id])
 
     while current_page <= total_pages:
-        response = context.client.GET(activity=stream,
+        response = context.client.GET(stream=stream,
                                       campaign_id=campaign_id,
-                                      date=request_date,
-                                      page=current_page)
+                                      page=current_page,
+                                      date=request_date)
+        data = json.loads(response.content)
         if current_page == 1:
             logger.info(
-                'querying campaign {campaign_id} now - will retrieve {total} '
-                'total records'.format(
+                '{ts} querying campaign {campaign_id} now - will retrieve '
+                '{total} total records'.format(
+                    ts=datetime.now(),
                     campaign_id=campaign_id,
-                    total=response.TotalNumberOfRecords))
+                    total=data['TotalNumberOfRecords']))
 
-        total_pages = response.NumberOfPages
-        current_page = response.PageNumber + 1
+        total_pages = data['NumberOfPages']
+        current_page = data['PageNumber'] + 1
 
-        records = transform_records(response.Results, stream,
-                                    campaign_id=campaign_id)
+        records = join_campaign_id(data['Results'], campaign_id)
 
         if last_updated:
             (stop_paginating, records_to_save) = filter_new_records(
@@ -227,36 +234,15 @@ def get_latest_record_timestamp(records, last_updated_date, time_key):
         return date_to_return + '+00:00'
 
 
-def transform_records(data, stream, campaign_id=None):
+def join_campaign_id(data, campaign_id):
     """
-    Transform the python models returned by the CampaignMonitor SDK into
-    python dicts that we want to save.
+    Join the campaign ID to each record so these can be joined to campaign
+    information in SQL.
     """
-    per_event_properties = {
-        'recipients': ['EmailAddress', 'ListID'],
-        'clicks': ['EmailAddress', 'Date', 'ListID', 'City', 'CountryCode',
-                   'CountryName', 'Latitude', 'Longitude', 'Region', 'URL',
-                   'IPAddress'],
-        'opens': ['EmailAddress', 'Date', 'ListID', 'City', 'CountryCode',
-                  'CountryName', 'Latitude', 'Longitude', 'Region',
-                  'IPAddress'],
-        'bounces': ['EmailAddress', 'Date', 'ListID', 'Reason', 'BounceType'],
-        'unsubscribes': ['EmailAddress', 'Date', 'ListID', 'IPAddress'],
-        'marked_as_spam': ['EmailAddress', 'Date', 'ListID'],
-        'campaigns': ['CampaignID', 'SentDate', 'FromEmail', 'FromName',
-                      'Name', 'ReplyTo', 'Subject', 'TotalRecipients',
-                      'WebVersionTextURL', 'WebVersionURL'],
-    }
-
-    result = []
     for record in data:
-        new_record = {field: record.__dict__.get(field)
-                      for field in per_event_properties[stream]}
-        if campaign_id:
-            new_record['campaign_id'] = campaign_id
-        result.append(new_record)
+        record['campaign_id'] = campaign_id
 
-    return result
+    return data
 
 
 def save_state(context, stream, bk):

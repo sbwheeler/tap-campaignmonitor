@@ -1,54 +1,73 @@
+import base64
+
 import backoff
 import requests
+from .timeout import timeout
 
 import singer
-from createsend import Client as CampaignMonitorClient
-from createsend import Campaign
 
 logger = singer.get_logger()
 
 
+CAMPAIGN_URI = 'https://api.createsend.com/api/v3.1/clients/{client_id}/campaigns.json'  # NOQA
+ACTIVITY_URI = 'https://api.createsend.com/api/v3.1/campaigns/{campaign_id}/{stream}.json?{date}page={page}'  # NOQA
+
+
+def _join(a, b):
+    return a.rstrip("/") + "/" + b.lstrip("/")
+
+
 class Client(object):
     def __init__(self, config):
+        self.user_agent = config.get("user_agent")
         self.api_key = config.get('api_key')
         self.client_id = config.get('client_id')
         self.session = requests.Session()
-        self.campaign_client = self._get_campaign_client()
 
-    def create_get_request(self, path, activity, date):
-        return requests.Request(method='GET', url=self.url(path, activity,
-                                                           date))
+    def campaign_sync_url(self):
+        return CAMPAIGN_URI.format(client_id=self.client_id)
 
-    def GET(self, activity=None, campaign_id=None, date=None, page=1):
-        if not activity:
-            return self.campaign_client.campaigns()
+    def activity_sync_url(self, campaign_id, stream, page, date):
+        return ACTIVITY_URI.format(campaign_id=campaign_id,
+                                   stream=stream,
+                                   page=page,
+                                   date='date={}&'.format(
+                                       date) if date else None)
+
+    @timeout(seconds=60)
+    def create_get_request(self,
+                           stream=None,
+                           campaign_id=None,
+                           page=None,
+                           date=None):
+        if not campaign_id:
+            return requests.Request(method='GET', url=self.campaign_sync_url())
         else:
-            return self._get_campaign_activity(activity,
-                                               campaign_id,
-                                               date,
-                                               page)
+            return requests.Request(method='GET',
+                                    url=self.activity_sync_url(campaign_id,
+                                                               stream,
+                                                               page,
+                                                               date
+                                                               ))
 
-    def _get_campaign_client(self):
-        campaign_client = CampaignMonitorClient({'api_key': self.api_key},
-                                                self.client_id)
+    def prepare_and_send(self, request):
+        if self.user_agent:
+            request.headers['User-Agent'] = self.user_agent
 
-        return campaign_client
+        request.headers['Content-Type'] = 'application/json; charset=utf-8'
+        request.headers['Accept-Encoding'] = 'gzip, deflate'
+        request.headers['Authorization'] = 'Basic %s' % base64.b64encode(
+            ('%s:x' % self.api_key).encode()).decode()
 
-    def _get_campaign_activity(self, activity, campaign_id, date, page):
-        campaign_activity_client = Campaign(
-            {'api_key': self.api_key}, campaign_id=campaign_id)
-        activity_clients = {
-            'recipients': campaign_activity_client.recipients,
-            'clicks': campaign_activity_client.clicks,
-            'bounces': campaign_activity_client.bounces,
-            'opens': campaign_activity_client.opens,
-            'marked_as_spam': campaign_activity_client.spam,
-            'unsubscribes': campaign_activity_client.unsubscribes,
-        }
-        if activity == 'recipients':
-            return activity_clients[activity](page=page)
+        return self.session.send(request.prepare())
+
+    def GET(self, stream=None, campaign_id=None, page=1, date=None):
+        if stream == 'campaigns':
+            req = self.create_get_request()
+            return self.prepare_and_send(req)
         else:
-            # get latest records first
-            return activity_clients[activity](date=date,
-                                              page=page,
-                                              order_direction='asc')
+            req = self.create_get_request(stream=stream,
+                                          campaign_id=campaign_id,
+                                          page=page,
+                                          date=date)
+            return self.prepare_and_send(req)

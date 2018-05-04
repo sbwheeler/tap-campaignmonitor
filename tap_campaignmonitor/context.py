@@ -4,6 +4,8 @@ import singer
 from singer import bookmarks as bks_
 from .http import Client
 
+logger = singer.get_logger()
+
 
 class Context(object):
     """Represents a collection of global objects necessary for performing

@@ -11,7 +11,7 @@ class IDS(object):
     OPENS = 'opens'
     CLICKS = 'clicks'
     UNSUBSCRIBES = 'unsubscribes'
-    MARKED_AS_SPAM = 'marked_as_spam'
+    SPAM = 'spam'
 
 
 stream_ids = [getattr(IDS, x) for x in dir(IDS)
@@ -24,7 +24,7 @@ PK_FIELDS = {
     IDS.OPENS: ['EmailAddress'],
     IDS.CLICKS: ['EmailAddress'],
     IDS.UNSUBSCRIBES: ['EmailAddress'],
-    IDS.MARKED_AS_SPAM: ['EmailAddress'],
+    IDS.SPAM: ['EmailAddress'],
 }
 
 
