@@ -1,10 +1,11 @@
 import base64
+from datetime import datetime
 
-import backoff
 import requests
-from .timeout import timeout
 
 import singer
+
+from .timeout import timeout
 
 logger = singer.get_logger()
 
@@ -43,6 +44,7 @@ class Client(object):
         if not campaign_id:
             return requests.Request(method='GET', url=self.campaign_sync_url())
         else:
+            logger.info('{ts} making request'.format(ts=datetime.now()))
             return requests.Request(method='GET',
                                     url=self.activity_sync_url(campaign_id,
                                                                stream,

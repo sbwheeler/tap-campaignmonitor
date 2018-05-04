@@ -158,6 +158,7 @@ def run_campaign_activity_request(context,
                                       campaign_id=campaign_id,
                                       page=current_page,
                                       date=request_date)
+        logger.info('{ts} got response'.format(ts=datetime.now()))
         data = json.loads(response.content)
         if current_page == 1:
             logger.info(

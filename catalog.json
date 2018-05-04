@@ -13,7 +13,7 @@
       "stream": "campaigns"
     },
     {
-      "tap_stream_id": "clicks",
+      "tap_stream_id": "bounces",
       "key_properties": [
         "EmailAddress"
       ],
@@ -22,7 +22,7 @@
         "inclusion": "automatic",
         "type": "object"
       },
-      "stream": "clicks"
+      "stream": "bounces"
     }
   ]
 }
