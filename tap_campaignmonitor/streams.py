@@ -16,8 +16,7 @@ def metrics(tap_stream_id, records):
 
 def write_records(tap_stream_id, records):
     logger.info('{ts} in singer write records')
-    raise Exception
-    singer.write_records(tap_stream_id, records)
+    # singer.write_records(tap_stream_id, records)
     logger.info('{ts} in singer posting metrics')
     metrics(tap_stream_id, records)
 
