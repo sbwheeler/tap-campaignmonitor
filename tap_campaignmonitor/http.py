@@ -44,7 +44,6 @@ class Client(object):
         if not campaign_id:
             return requests.Request(method='GET', url=self.campaign_sync_url())
         else:
-            logger.info('{ts} making request'.format(ts=datetime.now()))
             return requests.Request(method='GET',
                                     url=self.activity_sync_url(campaign_id,
                                                                stream,

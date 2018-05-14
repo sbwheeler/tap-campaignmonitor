@@ -15,9 +15,7 @@ def metrics(tap_stream_id, records):
 
 
 def write_records(tap_stream_id, records):
-    logger.info('{ts} in singer write records')
-    # singer.write_records(tap_stream_id, records)
-    logger.info('{ts} in singer posting metrics')
+    singer.write_records(tap_stream_id, records)
     metrics(tap_stream_id, records)
 
 
@@ -160,7 +158,6 @@ def run_campaign_activity_request(context,
                                       campaign_id=campaign_id,
                                       page=current_page,
                                       date=request_date)
-        logger.info('{ts} got response'.format(ts=datetime.now()))
         data = json.loads(response.content)
         if current_page == 1:
             logger.info(
@@ -198,7 +195,6 @@ def filter_new_records(records, last_updated_datestring):
         records_to_save (list): the list of records after last_updated that we
             can save.
     """
-    logger.info('{ts} filter records'.format(ts=datetime.now()))
     if not len(records):
         return True, records
 
@@ -213,7 +209,6 @@ def filter_new_records(records, last_updated_datestring):
 
 def write_records_and_update_state(campaign_id, stream,
                                    batched_records, last_updated):
-    logger.info('{ts} in write records and update state'.format(ts=datetime.now()))
     write_records(stream, batched_records)
     last_updated[campaign_id] = get_latest_record_timestamp(
         batched_records,
@@ -226,7 +221,6 @@ def get_latest_record_timestamp(records, last_updated_date, time_key):
     """
     Must return properly formatted date to write to state/
     """
-    logger.info('{ts} in latest record timestamp'.format(ts=datetime.now()))
     if records:
         return_date = max(max([r[time_key] for r in records]),
                           last_updated_date)
