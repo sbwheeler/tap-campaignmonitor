@@ -67,8 +67,8 @@ def sync(context):
 
 
 def call_stream_full(context, stream):
+    raise Exception
     if stream == 'campaigns':
-        raise Exception
         response = context.client.GET(stream='campaigns')
         records_to_write = json.loads(response.content)
         write_records(stream, records_to_write)
