@@ -6,6 +6,7 @@ from singer import utils
 
 class IDS(object):
     CAMPAIGNS = 'campaigns'
+    SUPPRESSIONLIST = 'suppressionlist'
     RECIPIENTS = 'recipients'
     BOUNCES = 'bounces'
     OPENS = 'opens'
@@ -19,6 +20,7 @@ stream_ids = [getattr(IDS, x) for x in dir(IDS)
 
 PK_FIELDS = {
     IDS.CAMPAIGNS: ['CampaignID'],
+    IDS.SUPPRESSIONLIST: ['EmailAddress'],
     IDS.RECIPIENTS: ['EmailAddress'],
     IDS.BOUNCES: ['EmailAddress'],
     IDS.OPENS: ['EmailAddress'],

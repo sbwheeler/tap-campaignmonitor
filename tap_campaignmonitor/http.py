@@ -10,7 +10,7 @@ from .timeout import timeout
 logger = singer.get_logger()
 
 
-CAMPAIGN_URI = 'https://api.createsend.com/api/v3.1/clients/{client_id}/campaigns.json'  # NOQA
+FULL_URI = 'https://api.createsend.com/api/v3.1/clients/{client_id}/{stream}.json'  # NOQA
 ACTIVITY_URI = 'https://api.createsend.com/api/v3.1/campaigns/{campaign_id}/{stream}.json?{date}page={page}'  # NOQA
 
 
@@ -25,8 +25,13 @@ class Client(object):
         self.client_id = config.get('client_id')
         self.session = requests.Session()
 
-    def campaign_sync_url(self):
-        return CAMPAIGN_URI.format(client_id=self.client_id)
+    def full_sync_url(self, stream, page=None):
+        uri = FULL_URI.format(client_id=self.client_id,
+                              stream=stream)
+        if page:
+            return uri + '?page={}'.format(page)
+        else:
+            return uri
 
     def activity_sync_url(self, campaign_id, stream, page, date):
         return ACTIVITY_URI.format(campaign_id=campaign_id,
@@ -41,8 +46,8 @@ class Client(object):
                            campaign_id=None,
                            page=None,
                            date=None):
-        if not campaign_id:
-            return requests.Request(method='GET', url=self.campaign_sync_url())
+        if stream == 'campaigns' or stream == 'suppressionlist':
+            return requests.Request(method='GET', url=self.full_sync_url(stream, page=page))
         else:
             return requests.Request(method='GET',
                                     url=self.activity_sync_url(campaign_id,
@@ -63,12 +68,8 @@ class Client(object):
         return self.session.send(request.prepare())
 
     def GET(self, stream=None, campaign_id=None, page=1, date=None):
-        if stream == 'campaigns':
-            req = self.create_get_request()
-            return self.prepare_and_send(req)
-        else:
-            req = self.create_get_request(stream=stream,
-                                          campaign_id=campaign_id,
-                                          page=page,
-                                          date=date)
-            return self.prepare_and_send(req)
+        req = self.create_get_request(stream=stream,
+                                      campaign_id=campaign_id,
+                                      page=page,
+                                      date=date)
+        return self.prepare_and_send(req)

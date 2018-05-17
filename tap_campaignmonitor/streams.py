@@ -22,6 +22,7 @@ def write_records(tap_stream_id, records):
 class BOOK(object):
     CAMPAIGNS = [IDS.CAMPAIGNS]
     RECIPIENTS = [IDS.RECIPIENTS]
+    SUPPRESSIONLIST = [IDS.SUPPRESSIONLIST]
     BOUNCES = [IDS.BOUNCES, 'Date']
     OPENS = [IDS.OPENS, 'Date']
     CLICKS = [IDS.CLICKS, 'Date']
@@ -72,6 +73,8 @@ def call_stream_full(context, stream):
         write_records(stream, records_to_write)
 
         context.save_campaigns_meta(records_to_write)
+    elif stream == 'suppressionlist':
+        run_suppression_request(context)
     else:
         call_recipients_stream(context, stream)
 
@@ -88,22 +91,6 @@ def call_recipients_stream(context, stream):
         ))
 
         run_campaign_activity_request(context, campaign['id'], stream)
-
-
-def get_date_string_from_last_updated(datestring):
-    """
-    Takes in datestring of format 2017-01-01T00:00:00+00:00 (from singer),
-    returns datestring of format 2017-01-01 00:00 (for campaign monitor API)
-    """
-    return datestring[:-9].replace('T', ' ')
-
-
-def get_date_from_last_updated(datestring):
-    return datetime.strptime(datestring[:-6], '%Y-%m-%dT%H:%M:%S')
-
-
-def get_date_from_record_string(datestring):
-    return datetime.strptime(datestring, '%Y-%m-%d %H:%M:%S')
 
 
 def call_stream_incremental(context, stream):
@@ -131,6 +118,26 @@ def call_stream_incremental(context, stream):
             last_updated)
 
     return last_updated
+
+
+def run_suppression_request(context):
+    current_page = 1
+    total_pages = 2
+
+    while current_page <= total_pages:
+        response = context.client.GET(stream='suppressionlist',
+                                      page=current_page)
+        data = json.loads(response.content)
+        if current_page == 1:
+            logger.info(
+                '{ts} querying suppresion list now - will retrieve '
+                '{total} total records'.format(
+                    ts=datetime.now(),
+                    total=data['TotalNumberOfRecords']))
+
+        total_pages = data['NumberOfPages']
+        current_page = data['PageNumber'] + 1
+        write_records('suppressionlist', data['Results'])
 
 
 def run_campaign_activity_request(context,
@@ -248,3 +255,20 @@ def join_campaign_id(data, campaign_id):
 def save_state(context, stream, bk):
     context.set_bookmark(BOOK.return_bookmark_path(stream), bk)
     context.write_state()
+
+def get_date_string_from_last_updated(datestring):
+    """
+    Takes in datestring of format 2017-01-01T00:00:00+00:00 (from singer),
+    returns datestring of format 2017-01-01 00:00 (for campaign monitor API)
+    """
+    return datestring[:-9].replace('T', ' ')
+
+
+def get_date_from_last_updated(datestring):
+    return datetime.strptime(datestring[:-6], '%Y-%m-%dT%H:%M:%S')
+
+
+def get_date_from_record_string(datestring):
+    return datetime.strptime(datestring, '%Y-%m-%d %H:%M:%S')
+
+
