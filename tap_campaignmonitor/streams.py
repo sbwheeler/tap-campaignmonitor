@@ -102,6 +102,7 @@ def call_stream_incremental(context, stream):
 
     for campaign in context.campaigns:
         context.update_latest(campaign['id'], last_updated)
+        raise KeyError
 
         logger.info('{ts} - querying {stream} id: {id}, since: {since}'.format(
             ts=datetime.now(),
@@ -125,6 +126,7 @@ def run_suppression_request(context):
     total_pages = 2
 
     while current_page <= total_pages:
+
         response = context.client.GET(stream='suppressionlist',
                                       page=current_page)
         data = json.loads(response.content)
@@ -135,6 +137,7 @@ def run_suppression_request(context):
                     ts=datetime.now(),
                     total=data['TotalNumberOfRecords']))
 
+        raise KeyError
         total_pages = data['NumberOfPages']
         current_page = data['PageNumber'] + 1
         write_records('suppressionlist', data['Results'])
@@ -166,6 +169,8 @@ def run_campaign_activity_request(context,
                                       page=current_page,
                                       date=request_date)
         data = json.loads(response.content)
+
+        raise KeyError
         if current_page == 1:
             logger.info(
                 '{ts} querying campaign {campaign_id} now - will retrieve '
