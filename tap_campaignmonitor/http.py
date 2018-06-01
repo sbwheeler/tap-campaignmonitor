@@ -38,7 +38,7 @@ class Client(object):
                                    stream=stream,
                                    page=page,
                                    date='date={}&'.format(
-                                       date) if date else None)
+                                       date) if date else '')
 
     @timeout(seconds=60)
     def create_get_request(self,
