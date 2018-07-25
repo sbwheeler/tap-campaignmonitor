@@ -3,7 +3,7 @@
   "inclusion": "available",
   "selected-by-default": false,
   "properties": {
-    "CampaignID": {
+    "campaign_id": {
       "type": "string"
     },
     "FromName": {
