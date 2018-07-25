@@ -19,7 +19,7 @@ stream_ids = [getattr(IDS, x) for x in dir(IDS)
               if not x.startswith('__')]
 
 PK_FIELDS = {
-    IDS.CAMPAIGNS: ['CampaignID'],
+    IDS.CAMPAIGNS: ['campaign_id'],
     IDS.SUPPRESSIONLIST: ['EmailAddress'],
     IDS.RECIPIENTS: ['EmailAddress'],
     IDS.BOUNCES: ['EmailAddress'],
