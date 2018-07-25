@@ -1,5 +1,28 @@
 {
   "type": "object",
   "properties": {
-  }
+    "SuppressionReason": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "Date": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "State": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "EmailAddress": {
+      "type": [
+        "null",
+        "string"
+      ]
+    }
 }
