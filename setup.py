@@ -10,7 +10,7 @@ setup(
     classifiers=["Programming Language :: Python :: 3 :: Only"],
     py_modules=["tap_campaignmonitor"],
     install_requires=[
-        "singer-python>=5.0.12",
+        "singer-python==5.6.1",
         "requests",
         "createsend==5.0.0",
         "pendulum==1.2.0",
