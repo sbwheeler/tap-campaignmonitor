@@ -166,6 +166,7 @@ def run_campaign_activity_request(context,
                                       campaign_id=campaign_id,
                                       page=current_page,
                                       date=request_date)
+        logger.info('Response: {r}'.format(r=response))
         data = json.loads(response.content)
 
         if current_page == 1:
@@ -272,5 +273,3 @@ def get_date_from_last_updated(datestring):
 
 def get_date_from_record_string(datestring):
     return datetime.strptime(datestring, '%Y-%m-%d %H:%M:%S')
-
-
