@@ -166,8 +166,11 @@ def run_campaign_activity_request(context,
                                       campaign_id=campaign_id,
                                       page=current_page,
                                       date=request_date)
-        logger.info('Response: {r}'.format(r=response))
-        data = json.loads(response.content)
+        try:
+            data = json.loads(response.content)
+        except json.decoder.JSONDecodeError as e:
+            logger.info('Response: {r}'.format(r=response))
+            raise e
 
         if current_page == 1:
             logger.info(
