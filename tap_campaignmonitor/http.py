@@ -4,6 +4,7 @@ from datetime import datetime
 import requests
 
 import singer
+import time
 
 from .timeout import timeout
 
@@ -73,3 +74,27 @@ class Client(object):
                                       page=page,
                                       date=date)
         return self.prepare_and_send(req)
+
+    def retry_get(self, stream=None, campaign_id=None, page=1, date=None):
+        """Wrap certain streams in a retry wrapper for frequent 500s"""
+        retries = 20
+        delay = 120
+        backoff = 1.5
+        attempt = 1
+        while retries >= attempt:
+            response = self.GET(stream=stream, campaign_id=campaign_id, page=page,
+                                date=date)
+            if response.status_code >= 500:
+                logger.info(f'Got a status code of {response.status_code}, attempt '
+                            f'{attempt} of {retries}. Backing off for {delay} '
+                            f'seconds')
+                time.sleep(delay)
+                delay *= backoff
+                attempt += 1
+            else:
+                return response
+        url = self.activity_sync_url(stream=stream, campaign_id=campaign_id,
+                                       page=page, date=date)
+        logger.error(f'Status code of latest attempt: {response.status_code}')
+        logger.error(f'Latest attempt response {response.content}')
+        raise ValueError(f'Failed {retries} times trying to hit endpoint {url}')
