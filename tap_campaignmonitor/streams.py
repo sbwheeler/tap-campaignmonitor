@@ -3,11 +3,11 @@ from collections import defaultdict
 from datetime import datetime
 
 import singer
+import time
 
 from .schemas import IDS
 
 logger = singer.get_logger()
-
 
 def metrics(tap_stream_id, records):
     with singer.metrics.record_counter(tap_stream_id) as counter:
@@ -68,7 +68,7 @@ def sync(context):
 
 def call_stream_full(context, stream):
     if stream == 'campaigns':
-        response = context.client.GET(stream='campaigns')
+        response = retry_get(client=context.client,stream='campaigns')
         records_to_write = json.loads(response.content)
         write_records(stream, records_to_write)
 
@@ -126,7 +126,7 @@ def run_suppression_request(context):
 
     while current_page <= total_pages:
 
-        response = context.client.GET(stream='suppressionlist',
+        response = retry_get(client=context.client,stream='suppressionlist',
                                       page=current_page)
         data = json.loads(response.content)
         if current_page == 1:
@@ -162,10 +162,11 @@ def run_campaign_activity_request(context,
             last_updated[campaign_id])
 
     while current_page <= total_pages:
-        response = context.client.GET(stream=stream,
+        response = retry_get(client=context.client, stream=stream,
                                       campaign_id=campaign_id,
                                       page=current_page,
                                       date=request_date)
+
         try:
             data = json.loads(response.content)
         except json.decoder.JSONDecodeError as e:
@@ -195,6 +196,33 @@ def run_campaign_activity_request(context,
         else:
             write_records(stream, records)
 
+def retry_get(client,stream=None, campaign_id=None, page=1, date=None):
+    """Wrap certain streams in a retry wrapper for frequent 500s"""
+    retries = 20
+    delay = 120
+    backoff = 1.5
+    attempt = 1
+    while retries >= attempt:
+        response = client.GET(stream=stream,
+                           campaign_id=campaign_id,
+                           page=page,
+                           date=date)
+        if response.status_code >= 500:
+            logger.info(f'Got a status code of {response.status_code}, attempt '
+                        f'{attempt} of {retries}. Backing off for {delay} '
+                        f'seconds')
+            time.sleep(delay)
+            delay *= backoff
+            attempt += 1
+        else:
+            return response
+    url = client.activity_sync_url(stream=stream,
+                           campaign_id=campaign_id,
+                           page=page,
+                           date=date)
+    logger.error(f'Status code of latest attempt: {response.status_code}')
+    logger.error(f'Latest attempt response {response.content}')
+    raise ValueError(f'Failed {retries} times trying to hit endpoint {url}')
 
 def filter_new_records(records, last_updated_datestring):
     """
