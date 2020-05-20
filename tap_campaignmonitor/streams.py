@@ -8,7 +8,6 @@ from .schemas import IDS
 
 logger = singer.get_logger()
 
-
 def metrics(tap_stream_id, records):
     with singer.metrics.record_counter(tap_stream_id) as counter:
         counter.increment(len(records))
@@ -68,7 +67,7 @@ def sync(context):
 
 def call_stream_full(context, stream):
     if stream == 'campaigns':
-        response = context.client.GET(stream='campaigns')
+        response = context.client.retry_get(stream=stream)
         records_to_write = json.loads(response.content)
         write_records(stream, records_to_write)
 
@@ -126,8 +125,7 @@ def run_suppression_request(context):
 
     while current_page <= total_pages:
 
-        response = context.client.GET(stream='suppressionlist',
-                                      page=current_page)
+        response = context.client.retry_get(stream='suppressionlist', page=current_page)
         data = json.loads(response.content)
         if current_page == 1:
             logger.info(
@@ -162,10 +160,9 @@ def run_campaign_activity_request(context,
             last_updated[campaign_id])
 
     while current_page <= total_pages:
-        response = context.client.GET(stream=stream,
-                                      campaign_id=campaign_id,
-                                      page=current_page,
-                                      date=request_date)
+        response = context.client.retry_get(stream=stream, campaign_id=campaign_id,
+                                            page=current_page, date=request_date)
+
         try:
             data = json.loads(response.content)
         except json.decoder.JSONDecodeError as e:
@@ -194,7 +191,6 @@ def run_campaign_activity_request(context,
                 break
         else:
             write_records(stream, records)
-
 
 def filter_new_records(records, last_updated_datestring):
     """
