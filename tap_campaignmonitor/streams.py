@@ -67,7 +67,7 @@ def sync(context):
 
 def call_stream_full(context, stream):
     if stream == 'campaigns':
-        response = context.client.retry_get(stream='campaigns')
+        response = context.client.retry_get(stream=stream)
         records_to_write = json.loads(response.content)
         write_records(stream, records_to_write)
 

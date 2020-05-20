@@ -77,8 +77,8 @@ class Client(object):
 
     def retry_get(self, stream=None, campaign_id=None, page=1, date=None):
         """Wrap certain streams in a retry wrapper for frequent 500s"""
-        retries = 20
-        delay = 120
+        retries = 5
+        delay = 10
         backoff = 1.5
         attempt = 1
         while retries >= attempt:
@@ -94,7 +94,7 @@ class Client(object):
             else:
                 return response
         url = self.activity_sync_url(stream=stream, campaign_id=campaign_id,
-                                       page=page, date=date)
+                                     page=page, date=date)
         logger.error(f'Status code of latest attempt: {response.status_code}')
         logger.error(f'Latest attempt response {response.content}')
         raise ValueError(f'Failed {retries} times trying to hit endpoint {url}')
