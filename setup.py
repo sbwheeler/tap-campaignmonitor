@@ -14,7 +14,7 @@ setup(
         "requests",
         "createsend==5.0.0",
         "pendulum==1.2.0",
-        "urllib3==1.22",
+        "urllib3==1.26.5",
     ],
     entry_points="""
     [console_scripts]
